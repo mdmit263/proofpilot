@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#111827" />
-    <title>ProofPilot - Life Obligation Radar</title>
+    <title>DueProof - Obligation Defense</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
@@ -16,13 +16,14 @@
         <div class="brand">
           <span class="brand-mark">P</span>
           <div>
-            <strong>ProofPilot</strong>
-            <small>Life Obligation Radar</small>
+            <strong>DueProof</strong>
+            <small>Obligation Defense</small>
           </div>
         </div>
 
         <nav class="nav-list" aria-label="Primary">
           <a href="#dashboard">Dashboard</a>
+          <a href="#starter">Who it helps</a>
           <a href="#capture">Capture</a>
           <a href="#obligations">Obligations</a>
           <a href="#money">Money leaks</a>
@@ -40,15 +41,49 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Personal life operator</p>
-            <h1>Never miss the thing that costs you money, time, or peace.</h1>
+            <h1>Catch deadlines, charges, and paperwork before they become expensive.</h1>
           </div>
           <div class="top-actions">
             <button class="secondary-button" id="seedButton" type="button">Load demo</button>
+            <button class="secondary-button" id="exportButton" type="button">Export</button>
             <button class="install-button" id="installButton" type="button" hidden>Install app</button>
           </div>
         </header>
 
+        <section class="starter-panel" id="starter">
+          <div>
+            <p class="eyebrow">Why people use it</p>
+            <h2>Reminder apps wait for you to know the task. DueProof finds the task inside messy real life.</h2>
+          </div>
+          <div class="audience-grid">
+            <button class="audience-card" data-persona="family" type="button">
+              <strong>Families</strong>
+              <span>School forms, appointments, returns, rent, bills.</span>
+            </button>
+            <button class="audience-card" data-persona="student" type="button">
+              <strong>Students</strong>
+              <span>Housing, visa, tuition, deadlines, campus notices.</span>
+            </button>
+            <button class="audience-card" data-persona="caregiver" type="button">
+              <strong>Caregivers</strong>
+              <span>Parent bills, insurance, medical visits, paperwork.</span>
+            </button>
+            <button class="audience-card" data-persona="freelancer" type="button">
+              <strong>Freelancers</strong>
+              <span>Invoices, renewals, tax dates, client follow-ups.</span>
+            </button>
+          </div>
+        </section>
+
         <section class="hero-strip" id="dashboard">
+          <div>
+            <span>Missing proof</span>
+            <strong id="missingProofCount">0</strong>
+            <p>items need amount, date, ref, or contact</p>
+          </div>
+        </section>
+
+        <section class="hero-strip second-strip">
           <div>
             <span>Today</span>
             <strong id="todayCount">0</strong>
@@ -83,6 +118,15 @@
 
             <textarea id="captureInput" placeholder="Example: Your internet plan renews on May 12 for $89.99. Cancel by May 9 to avoid charges. Reference INV-4302."></textarea>
 
+            <div class="quick-captures" aria-label="Quick capture templates">
+              <button type="button" data-template="subscription">Subscription</button>
+              <button type="button" data-template="return">Return</button>
+              <button type="button" data-template="bill">Bill</button>
+              <button type="button" data-template="school">School form</button>
+              <button type="button" data-template="invoice">Invoice</button>
+              <button type="button" data-template="travel">Travel</button>
+            </div>
+
             <div class="capture-controls">
               <label>
                 Category
@@ -109,6 +153,26 @@
                 </select>
               </label>
 
+              <label>
+                Due date
+                <input id="manualDateInput" type="date" />
+              </label>
+
+              <label>
+                Amount
+                <input id="manualAmountInput" type="number" min="0" step="0.01" placeholder="Optional" />
+              </label>
+
+              <label>
+                Remind
+                <select id="reminderInput">
+                  <option value="0">On due date</option>
+                  <option value="1">1 day before</option>
+                  <option value="3" selected>3 days before</option>
+                  <option value="7">7 days before</option>
+                </select>
+              </label>
+
               <button class="primary-button" id="analyzeButton" type="button">Analyze and track</button>
             </div>
           </div>
@@ -123,6 +187,10 @@
             <div class="brief-card" id="briefCard">
               <strong>No active briefing yet</strong>
               <p>Add a life-admin item to generate a practical action plan.</p>
+            </div>
+            <div class="brief-actions">
+              <button class="secondary-button" id="copyBriefButton" type="button">Copy briefing</button>
+              <button class="secondary-button" id="enableNotificationsButton" type="button">Enable reminders</button>
             </div>
           </div>
         </section>
@@ -153,13 +221,18 @@
                 <p class="eyebrow">Obligation radar</p>
                 <h2>Open loops</h2>
               </div>
-              <select id="filterInput" aria-label="Filter obligations">
-                <option value="all">All</option>
-                <option value="urgent">Urgent</option>
-                <option value="money">Money risk</option>
-                <option value="today">Today</option>
-                <option value="resolved">Resolved</option>
-              </select>
+              <div class="list-tools">
+                <input id="searchInput" type="search" placeholder="Search obligations" aria-label="Search obligations" />
+                <select id="filterInput" aria-label="Filter obligations">
+                  <option value="all">All</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="money">Money risk</option>
+                  <option value="today">Today</option>
+                  <option value="week">Next 7 days</option>
+                  <option value="missing">Missing proof</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
             </div>
             <div class="obligation-list" id="obligationList"></div>
           </div>
@@ -186,6 +259,18 @@
             <ol class="mission-list" id="missionList"></ol>
           </div>
 
+          <div class="panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Follow-up engine</p>
+                <h2>Suggested messages</h2>
+              </div>
+            </div>
+            <div class="message-list" id="messageList"></div>
+          </div>
+        </section>
+
+        <section class="two-column">
           <div class="panel" id="vault">
             <div class="section-heading">
               <div>
@@ -194,6 +279,24 @@
               </div>
             </div>
             <div class="vault-list" id="vaultList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Launch wedge</p>
+                <h2>Start with money leaks</h2>
+              </div>
+            </div>
+            <div class="strategy-card">
+              <strong>Best first promise</strong>
+              <p>Forward or paste any bill, renewal, receipt, return notice, or fee warning. DueProof tells you what to do before you lose money.</p>
+              <ul>
+                <li>Free users track 10 obligations.</li>
+                <li>Premium users get unlimited tracking and reminders.</li>
+                <li>Family plan helps manage parents, kids, and household paperwork.</li>
+              </ul>
+            </div>
           </div>
         </section>
       </section>

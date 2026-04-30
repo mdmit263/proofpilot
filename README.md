@@ -1,6 +1,6 @@
-# ProofPilot
+# DueProof
 
-ProofPilot is a mobile-ready Progressive Web App for catching life-admin obligations before they become expensive problems.
+DueProof is a mobile-ready Progressive Web App for catching life-admin obligations before they become expensive problems.
 
 ## What It Does
 

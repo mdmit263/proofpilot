@@ -1,7 +1,7 @@
-# ProofPilot Product Strategy
+# DueProof Product Strategy
 
 ## One-Line Pitch
-ProofPilot is a personal life operator that catches deadlines, charges, renewals, forms, and follow-ups before they become expensive problems.
+DueProof is an obligation-defense app that catches deadlines, charges, renewals, forms, and follow-ups before they become expensive problems.
 
 ## Why This Can Be Big
 Most people do not need another chat app. They need a system that watches their messy life admin and turns it into action.
@@ -17,7 +17,7 @@ The daily pain is universal:
 - government and work paperwork
 
 ## Differentiation
-ChatGPT answers when asked. ProofPilot keeps a structured radar of obligations, money risk, deadlines, owners, missing information, and resolution status.
+ChatGPT answers when asked. DueProof keeps a structured radar of obligations, money risk, deadlines, owners, missing information, and resolution status.
 
 The product moat is:
 1. Capture-first workflow

@@ -1,4 +1,4 @@
-# Deploy ProofPilot
+# Deploy DueProof
 
 ## Best Option For Fast Public Launch: Netlify Drop
 

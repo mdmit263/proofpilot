@@ -1,6 +1,6 @@
 {
-  "name": "ProofPilot - Life Obligation Radar",
-  "short_name": "ProofPilot",
+  "name": "DueProof - Obligation Defense",
+  "short_name": "DueProof",
   "description": "Capture life admin, detect deadlines and money risk, and turn messy obligations into action plans.",
   "start_url": ".",
   "display": "standalone",

@@ -3,19 +3,28 @@ const STORAGE_KEY = "proofpilot-obligations";
 const captureInput = document.querySelector("#captureInput");
 const categoryInput = document.querySelector("#categoryInput");
 const ownerInput = document.querySelector("#ownerInput");
+const manualDateInput = document.querySelector("#manualDateInput");
+const manualAmountInput = document.querySelector("#manualAmountInput");
+const reminderInput = document.querySelector("#reminderInput");
 const analyzeButton = document.querySelector("#analyzeButton");
 const clearButton = document.querySelector("#clearButton");
 const seedButton = document.querySelector("#seedButton");
+const exportButton = document.querySelector("#exportButton");
+const copyBriefButton = document.querySelector("#copyBriefButton");
+const enableNotificationsButton = document.querySelector("#enableNotificationsButton");
 const filterInput = document.querySelector("#filterInput");
+const searchInput = document.querySelector("#searchInput");
 const obligationList = document.querySelector("#obligationList");
 const moneyList = document.querySelector("#moneyList");
 const missionList = document.querySelector("#missionList");
 const vaultList = document.querySelector("#vaultList");
+const messageList = document.querySelector("#messageList");
 const briefCard = document.querySelector("#briefCard");
 const todayCount = document.querySelector("#todayCount");
 const moneyAtRisk = document.querySelector("#moneyAtRisk");
 const highestRisk = document.querySelector("#highestRisk");
 const resolvedCount = document.querySelector("#resolvedCount");
+const missingProofCount = document.querySelector("#missingProofCount");
 const installButton = document.querySelector("#installButton");
 const template = document.querySelector("#obligationTemplate");
 
@@ -42,9 +51,25 @@ const demoItems = [
   },
 ];
 
+const templates = {
+  subscription: "My plan renews on May 12 for $89.99. Cancel before May 9 to avoid the charge. Account ID ABC-1234.",
+  return: "Return window closes May 18 for order #R4821. Refund amount $64.50. Item must be shipped with the original label.",
+  bill: "Payment of $240 is due on May 10. A late fee applies after May 12. Invoice INV-3009.",
+  school: "School permission form is due May 6. Parent signature and insurance info required.",
+  invoice: "Client invoice INV-1042 for $1,200 is due May 15. Follow up if unpaid.",
+  travel: "Passport appointment on May 20. Bring photo ID, passport photo, old passport, and payment.",
+};
+
+const personaExamples = {
+  family: "School form due May 6. Parent signature, lunch payment of $28, and emergency contact update required.",
+  student: "Housing deposit of $500 is due May 14. Submit lease documents and student ID before the deadline.",
+  caregiver: "Insurance renewal notice for Dad is due May 22. Premium is $310. Need policy number and doctor list.",
+  freelancer: "Client invoice INV-2098 for $1,750 is due May 17. Send follow-up if unpaid after due date.",
+};
+
 function loadItems() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    return (JSON.parse(localStorage.getItem(STORAGE_KEY)) || []).map(normalizeItem);
   } catch {
     return [];
   }
@@ -54,12 +79,23 @@ function saveItems(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-function parseItem(text, selectedCategory, owner) {
+function normalizeItem(item) {
+  return {
+    ...item,
+    reminderDays: Number(item.reminderDays ?? 3),
+    scamSignals: item.scamSignals || detectScamSignals(item.rawText || item.summary || ""),
+    missingInfo: item.missingInfo || findMissingInfo(item.rawText || item.summary || "", item.category || "work"),
+    checklist: item.checklist || makeChecklist(item.category || "work"),
+    messageDraft: item.messageDraft || makeMessageDraft(item.category || "work", item.title || "this item", item.deadline, item.amount || 0),
+  };
+}
+
+function parseItem(text, selectedCategory, owner, overrides = {}) {
   const detectedCategory = selectedCategory === "auto" ? detectCategory(text) : selectedCategory;
   const dates = extractDates(text);
   const amounts = extractAmounts(text);
-  const deadline = dates[0] || null;
-  const amount = amounts[0] || 0;
+  const deadline = overrides.deadline || dates[0] || null;
+  const amount = Number.isFinite(overrides.amount) ? overrides.amount : amounts[0] || 0;
   const risk = calculateRisk(text, deadline, amount, detectedCategory);
   const title = makeTitle(text, detectedCategory);
 
@@ -76,8 +112,12 @@ function parseItem(text, selectedCategory, owner) {
     reference: extractReference(text),
     risk,
     status: "open",
+    reminderDays: Number(overrides.reminderDays ?? 3),
+    scamSignals: detectScamSignals(text),
     actionPlan: makeActionPlan(text, detectedCategory, deadline, amount),
     missingInfo: findMissingInfo(text, detectedCategory),
+    checklist: makeChecklist(detectedCategory),
+    messageDraft: makeMessageDraft(detectedCategory, title, deadline, amount),
   };
 }
 
@@ -186,22 +226,79 @@ function findMissingInfo(text, category) {
   return missing;
 }
 
+function detectScamSignals(text) {
+  const signals = [];
+  if (/(gift card|wire transfer|crypto|bitcoin|zelle|cash app)/i.test(text)) signals.push("risky payment method");
+  if (/(act now|immediately|final warning|account locked|verify now)/i.test(text)) signals.push("pressure language");
+  if (/(password|one-time code|otp|verification code)/i.test(text)) signals.push("sensitive credential request");
+  if (/(click here|bit\.ly|tinyurl|login now)/i.test(text)) signals.push("link or login pressure");
+  return signals;
+}
+
+function makeChecklist(category) {
+  const common = ["save a screenshot or copy", "confirm deadline", "confirm contact method"];
+  const byCategory = {
+    subscription: ["find cancel link", "check renewal amount", "confirm cancellation email"],
+    return: ["print or save label", "pack item", "ship before cutoff"],
+    housing: ["save receipt", "confirm payment method", "keep landlord message"],
+    appointment: ["confirm location", "prepare documents", "set leave-time reminder"],
+    school: ["complete form", "add signature", "submit proof"],
+    travel: ["check ID names", "verify document expiration", "save confirmation"],
+    bill: ["verify amount", "pay or dispute", "save receipt"],
+    work: ["confirm owner", "confirm deliverable", "send reply"],
+  };
+  return [...(byCategory[category] || byCategory.work), ...common].slice(0, 5);
+}
+
+function makeMessageDraft(category, title, deadline, amount) {
+  const date = deadline ? formatDate(deadline) : "the deadline";
+  const money = amount ? ` and the amount is ${formatCurrency(amount)}` : "";
+
+  if (category === "subscription") {
+    return `Hi, I want to confirm the cancellation steps for ${title}. I understand the deadline is ${date}${money}. Please confirm the account, final charge, and whether cancellation will stop the renewal.`;
+  }
+
+  if (category === "return") {
+    return `Hi, I want to complete this return before ${date}${money}. Please confirm the return label, drop-off method, and expected refund timing.`;
+  }
+
+  if (category === "bill" || category === "housing") {
+    return `Hi, I am reviewing ${title}. Please confirm the due date, exact amount${money ? "" : ", amount"}, payment method, and whether any late fee applies after ${date}.`;
+  }
+
+  return `Hi, I am organizing ${title}. Please confirm the deadline, required documents, contact method, and anything missing from my side.`;
+}
+
 function render() {
   const items = loadItems();
-  const filtered = applyFilter(items, filterInput.value);
+  const filtered = applySearch(applyFilter(items, filterInput.value), searchInput.value);
   renderStats(items);
   renderObligations(filtered);
   renderMoney(items);
   renderMission(items);
   renderVault(items);
+  renderMessages(items);
 }
 
 function applyFilter(items, filter) {
   if (filter === "urgent") return items.filter((item) => item.risk === "high" && item.status !== "resolved");
   if (filter === "money") return items.filter((item) => item.amount > 0);
   if (filter === "today") return items.filter((item) => item.deadline && daysUntil(item.deadline) <= 0);
+  if (filter === "week") return items.filter((item) => item.deadline && daysUntil(item.deadline) <= 7 && item.status !== "resolved");
+  if (filter === "missing") return items.filter((item) => item.missingInfo.length > 0 && item.status !== "resolved");
   if (filter === "resolved") return items.filter((item) => item.status === "resolved");
   return items.filter((item) => item.status !== "resolved");
+}
+
+function applySearch(items, query) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return items;
+  return items.filter((item) =>
+    [item.title, item.summary, item.rawText, item.category, item.owner, item.reference]
+      .join(" ")
+      .toLowerCase()
+      .includes(needle)
+  );
 }
 
 function renderStats(items) {
@@ -209,6 +306,7 @@ function renderStats(items) {
   todayCount.textContent = open.filter((item) => item.deadline && daysUntil(item.deadline) <= 0).length;
   moneyAtRisk.textContent = formatCurrency(open.reduce((sum, item) => sum + (item.amount || 0), 0));
   resolvedCount.textContent = items.filter((item) => item.status === "resolved").length;
+  missingProofCount.textContent = open.filter((item) => item.missingInfo.length > 0).length;
   highestRisk.textContent = open.some((item) => item.risk === "high") ? "High" : open.some((item) => item.risk === "medium") ? "Medium" : "Clear";
 }
 
@@ -231,7 +329,8 @@ function renderObligations(items) {
       node.querySelector("h3").textContent = item.title;
       node.querySelector(".summary").textContent = item.summary;
       node.querySelector(".meta-row").innerHTML = metaTags(item).map((tag) => `<span>${tag}</span>`).join("");
-      node.querySelector(".action-box").textContent = item.actionPlan;
+      const warning = item.scamSignals.length ? ` Safety check: ${item.scamSignals.join(", ")}.` : "";
+      node.querySelector(".action-box").textContent = `${item.actionPlan}${warning}`;
       node.querySelector(".resolve-button").addEventListener("click", () => toggleResolved(item.id));
       obligationList.append(node);
     });
@@ -272,6 +371,26 @@ function renderMission(items) {
   });
 }
 
+function renderMessages(items) {
+  const open = items.filter((item) => item.status !== "resolved").sort(sortByRiskAndDate).slice(0, 4);
+  messageList.innerHTML = "";
+  if (!open.length) {
+    messageList.append(emptyState("Suggested replies will appear here."));
+    return;
+  }
+
+  open.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "message-card";
+    card.innerHTML = `
+      <h3>${item.title}</h3>
+      <p>Editable draft for contacting the company, school, landlord, client, or office.</p>
+      <textarea>${item.messageDraft}</textarea>
+    `;
+    messageList.append(card);
+  });
+}
+
 function renderVault(items) {
   vaultList.innerHTML = "";
   const open = items.filter((item) => item.status !== "resolved").sort(sortByRiskAndDate).slice(0, 6);
@@ -291,6 +410,8 @@ function renderVault(items) {
       <p><b>Amount:</b> ${item.amount ? formatCurrency(item.amount) : "unknown"}</p>
       <p><b>Reference:</b> ${item.reference || "unknown"}</p>
       <p><b>Missing:</b> ${missing}</p>
+      <p><b>Checklist:</b> ${item.checklist.join(", ")}</p>
+      <p><b>Safety signals:</b> ${item.scamSignals.length ? item.scamSignals.join(", ") : "none detected"}</p>
     `;
     vaultList.append(card);
   });
@@ -305,7 +426,8 @@ function renderBriefing(item) {
       <li>Risk level: ${item.risk.toUpperCase()}</li>
       <li>Next action: ${item.actionPlan}</li>
       <li>Missing info: ${missing}</li>
-      <li>Suggested reply: “Thanks. I’m reviewing this now. Please confirm the deadline, amount, and best contact method so I can resolve it correctly.”</li>
+      <li>Checklist: ${item.checklist.join(", ")}</li>
+      <li>Suggested reply: “${item.messageDraft}”</li>
     </ul>
   `;
 }
@@ -316,6 +438,7 @@ function metaTags(item) {
     item.category,
     item.deadline ? formatDate(item.deadline) : "no deadline",
     item.amount ? formatCurrency(item.amount) : "no amount",
+    `remind ${item.reminderDays}d before`,
   ];
 }
 
@@ -363,11 +486,18 @@ analyzeButton.addEventListener("click", () => {
   const text = captureInput.value.trim();
   if (!text) return;
 
-  const item = parseItem(text, categoryInput.value, ownerInput.value);
+  const manualAmount = manualAmountInput.value ? Number(manualAmountInput.value) : undefined;
+  const item = parseItem(text, categoryInput.value, ownerInput.value, {
+    deadline: manualDateInput.value ? new Date(`${manualDateInput.value}T12:00:00`).toISOString() : undefined,
+    amount: Number.isFinite(manualAmount) ? manualAmount : undefined,
+    reminderDays: Number(reminderInput.value),
+  });
   const items = [item, ...loadItems()];
   saveItems(items);
   renderBriefing(item);
   captureInput.value = "";
+  manualDateInput.value = "";
+  manualAmountInput.value = "";
   render();
 });
 
@@ -384,6 +514,53 @@ seedButton.addEventListener("click", () => {
 });
 
 filterInput.addEventListener("change", render);
+searchInput.addEventListener("input", render);
+
+document.querySelectorAll(".quick-captures button").forEach((button) => {
+  button.addEventListener("click", () => {
+    captureInput.value = templates[button.dataset.template] || "";
+    captureInput.focus();
+  });
+});
+
+document.querySelectorAll(".audience-card").forEach((button) => {
+  button.addEventListener("click", () => {
+    captureInput.value = personaExamples[button.dataset.persona] || "";
+    captureInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    captureInput.focus();
+  });
+});
+
+copyBriefButton.addEventListener("click", async () => {
+  const text = briefCard.innerText.trim();
+  if (!text) return;
+  await navigator.clipboard.writeText(text);
+  copyBriefButton.textContent = "Copied";
+  setTimeout(() => {
+    copyBriefButton.textContent = "Copy briefing";
+  }, 1600);
+});
+
+exportButton.addEventListener("click", () => {
+  const data = JSON.stringify(loadItems(), null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "dueproof-obligations.json";
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
+enableNotificationsButton.addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    enableNotificationsButton.textContent = "Not supported";
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  enableNotificationsButton.textContent = permission === "granted" ? "Reminders enabled" : "Reminders off";
+});
 
 let pendingInstallPrompt = null;
 

@@ -66,6 +66,10 @@ select {
   font-weight: 900;
 }
 
+input {
+  font: inherit;
+}
+
 .brand strong,
 .brand small {
   display: block;
@@ -117,7 +121,9 @@ select {
 .card-head,
 .meta-row,
 .top-actions,
-.capture-controls {
+.capture-controls,
+.list-tools,
+.brief-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -172,11 +178,60 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.starter-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid #cfd6e2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.starter-panel h2 {
+  max-width: 520px;
+  font-size: clamp(1.35rem, 3vw, 2.15rem);
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.audience-card {
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.audience-card strong,
+.audience-card span {
+  display: block;
+}
+
+.audience-card span {
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .hero-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
+}
+
+.second-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .hero-strip div {
@@ -226,7 +281,8 @@ textarea {
 }
 
 textarea:focus,
-select:focus {
+select:focus,
+input:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
@@ -246,6 +302,36 @@ select {
   border-radius: 6px;
   background: #fff;
   color: var(--ink);
+}
+
+input {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #cfd6e2;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.quick-captures {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.quick-captures button {
+  min-height: 40px;
+  border: 1px solid #d7e1f3;
+  border-radius: 6px;
+  background: #f5f8ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.brief-actions {
+  margin-top: 14px;
 }
 
 .primary-button,
@@ -327,7 +413,8 @@ select {
 .obligation-list,
 .money-list,
 .vault-list,
-.mission-list {
+.mission-list,
+.message-list {
   display: grid;
   gap: 12px;
   margin-top: 16px;
@@ -347,7 +434,8 @@ select {
 
 .obligation-card,
 .money-card,
-.vault-card {
+.vault-card,
+.message-card {
   padding: 16px;
   border: 1px solid var(--line);
   border-left: 5px solid var(--blue);
@@ -395,9 +483,29 @@ select {
 
 .summary,
 .money-card p,
-.vault-card p {
+.vault-card p,
+.message-card p,
+.strategy-card p,
+.strategy-card li {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.message-card textarea {
+  min-height: 106px;
+  margin: 10px 0 0;
+}
+
+.strategy-card {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.strategy-card strong {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .meta-row {
@@ -452,6 +560,7 @@ select {
   }
 
   .hero-strip,
+  .starter-panel,
   .feature-grid,
   .command-center,
   .two-column {
@@ -468,16 +577,21 @@ select {
   .topbar,
   .section-heading,
   .capture-controls,
-  .top-actions {
+  .top-actions,
+  .list-tools,
+  .brief-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
   .hero-strip,
+  .starter-panel,
+  .audience-grid,
   .feature-grid,
   .command-center,
   .two-column,
-  .nav-list {
+  .nav-list,
+  .quick-captures {
     grid-template-columns: 1fr;
   }
 
